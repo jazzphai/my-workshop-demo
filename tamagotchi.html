@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BytePal - Tiny Tamagotchi</title>
+  <style>
+    :root {
+      --bg: #0f1226;
+      --panel: #1a1f3d;
+      --accent: #ffb200;
+      --accent-2: #62f0c8;
+      --text: #f5f6ff;
+      --muted: #a7b0d8;
+      --danger: #ff6b6b;
+      --ok: #7ef29b;
+      --shadow: rgba(0,0,0,0.35);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", "Lucida Sans", "Tahoma", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(800px 500px at 20% 10%, #2a2f5c 0%, transparent 60%),
+        radial-gradient(700px 500px at 80% 20%, #223553 0%, transparent 65%),
+        linear-gradient(180deg, #0b0e20 0%, #0f1226 100%);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+    }
+    .shell {
+      width: min(900px, 94vw);
+      background: var(--panel);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 18px 40px var(--shadow);
+      border: 2px solid #2b335e;
+    }
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .title {
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .title small { color: var(--muted); font-weight: 400; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .stat {
+      background: #111534;
+      border-radius: 12px;
+      padding: 10px 12px;
+      border: 1px solid #2a3260;
+    }
+    .stat label { color: var(--muted); font-size: 12px; }
+    .bar {
+      height: 8px;
+      background: #22285a;
+      border-radius: 999px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+    .bar > span {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #ffd36a);
+      width: 50%;
+      transition: width 0.2s ease;
+    }
+    .main {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+    @media (max-width: 760px) {
+      .stats { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+      .main { grid-template-columns: 1fr; }
+    }
+    .screen {
+      background: #0a0f26;
+      border-radius: 16px;
+      padding: 16px;
+      min-height: 260px;
+      border: 2px solid #2b335e;
+      position: relative;
+      overflow: hidden;
+    }
+    .pet {
+      width: 120px;
+      height: 120px;
+      margin: 8px auto 0;
+      position: relative;
+      display: grid;
+      place-items: center;
+      transition: transform 0.2s ease;
+    }
+    .pet::before {
+      content: "";
+      width: 110px;
+      height: 110px;
+      border-radius: 26px;
+      background: linear-gradient(135deg, #3c4b86, #1a2350);
+      border: 2px solid #6476c2;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.35);
+    }
+    .eyes {
+      position: absolute;
+      top: 40px;
+      display: flex;
+      gap: 20px;
+    }
+    .eye {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      background: #f9fbff;
+      position: relative;
+    }
+    .eye::after {
+      content: "";
+      width: 5px;
+      height: 5px;
+      border-radius: 999px;
+      background: #0b0e20;
+      position: absolute;
+      top: 4px;
+      left: 6px;
+      transition: transform 0.2s ease;
+    }
+    .mouth {
+      position: absolute;
+      top: 72px;
+      width: 26px;
+      height: 10px;
+      border-bottom: 3px solid #f9fbff;
+      border-radius: 0 0 16px 16px;
+    }
+    .mood {
+      text-align: center;
+      color: var(--accent-2);
+      font-weight: 700;
+      margin-top: 8px;
+    }
+    .log {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--muted);
+      min-height: 48px;
+    }
+    .controls {
+      display: grid;
+      gap: 10px;
+    }
+    .controls button {
+      border: none;
+      padding: 12px;
+      font-size: 14px;
+      border-radius: 10px;
+      background: #2b3567;
+      color: var(--text);
+      cursor: pointer;
+      border: 1px solid #3d4a8c;
+      transition: transform 0.1s ease, background 0.2s ease;
+    }
+    .controls button:hover { background: #36438b; }
+    .controls button:active { transform: translateY(1px); }
+    .badge {
+      font-size: 11px;
+      background: #28305c;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid #3d4a8c;
+      color: var(--muted);
+    }
+    .footer {
+      margin-top: 16px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .egg {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      font-size: 12px;
+      color: #2a2f5c;
+      user-select: none;
+    }
+    .hidden {
+      display: none;
+    }
+    .secret-banner {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(15, 18, 38, 0.85);
+      color: #fff;
+      font-size: 18px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="top">
+      <div class="title">BytePal <small>tiny tamagotchi</small></div>
+      <div class="badge" id="timeBadge">00:00</div>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <label>Hunger</label>
+        <div class="bar"><span id="hungerBar"></span></div>
+      </div>
+      <div class="stat">
+        <label>Happiness</label>
+        <div class="bar"><span id="happyBar"></span></div>
+      </div>
+      <div class="stat">
+        <label>Energy</label>
+        <div class="bar"><span id="energyBar"></span></div>
+      </div>
+      <div class="stat">
+        <label>Cleanliness</label>
+        <div class="bar"><span id="cleanBar"></span></div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="screen" id="screen">
+        <div class="egg">tap, tap...</div>
+        <div class="pet" id="pet">
+          <div class="eyes">
+            <div class="eye"></div>
+            <div class="eye"></div>
+          </div>
+          <div class="mouth"></div>
+        </div>
+        <div class="mood" id="mood">Feeling okay</div>
+        <div class="log" id="log">BytePal blinked. It seems ready.</div>
+        <div class="secret-banner hidden" id="secretBanner">Easter Egg Unlocked</div>
+      </div>
+
+      <div class="controls">
+        <button id="feedBtn">Feed</button>
+        <button id="playBtn">Play</button>
+        <button id="sleepBtn">Sleep</button>
+        <button id="cleanBtn">Clean</button>
+        <button id="resetBtn">Reset</button>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="badge">Easter eggs: 4 hidden</div>
+      <div class="badge" id="streakBadge">Streak: 0</div>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      hunger: 60,
+      happy: 60,
+      energy: 70,
+      clean: 65,
+      streak: 0,
+      lastAction: null,
+      eggClicks: 0,
+      konami: [],
+      inverted: false,
+      disco: false
+    };
+
+    const moodEl = document.getElementById("mood");
+    const logEl = document.getElementById("log");
+    const timeBadge = document.getElementById("timeBadge");
+    const petEl = document.getElementById("pet");
+    const screenEl = document.getElementById("screen");
+    const secretBanner = document.getElementById("secretBanner");
+    const streakBadge = document.getElementById("streakBadge");
+
+    const bars = {
+      hunger: document.getElementById("hungerBar"),
+      happy: document.getElementById("happyBar"),
+      energy: document.getElementById("energyBar"),
+      clean: document.getElementById("cleanBar")
+    };
+
+    function clamp(val) {
+      return Math.max(0, Math.min(100, val));
+    }
+
+    function updateBars() {
+      bars.hunger.style.width = state.hunger + "%";
+      bars.happy.style.width = state.happy + "%";
+      bars.energy.style.width = state.energy + "%";
+      bars.clean.style.width = state.clean + "%";
+    }
+
+    function setMood() {
+      const avg = (state.hunger + state.happy + state.energy + state.clean) / 4;
+      let mood = "Feeling okay";
+      let color = "var(--accent-2)";
+      if (avg > 80) { mood = "Super stoked"; color = "var(--ok)"; }
+      if (avg < 45) { mood = "Needs attention"; color = "var(--danger)"; }
+      if (avg < 25) { mood = "Very upset"; color = "var(--danger)"; }
+      moodEl.textContent = mood;
+      moodEl.style.color = color;
+    }
+
+    function log(msg) {
+      logEl.textContent = msg;
+    }
+
+    function tick() {
+      state.hunger = clamp(state.hunger - 2);
+      state.happy = clamp(state.happy - 1);
+      state.energy = clamp(state.energy - 1.5);
+      state.clean = clamp(state.clean - 1.2);
+      updateBars();
+      setMood();
+    }
+
+    function action(type) {
+      const combo = state.lastAction === type ? 0 : 1;
+      state.streak = combo ? state.streak + 1 : 0;
+      state.lastAction = type;
+      streakBadge.textContent = "Streak: " + state.streak;
+    }
+
+    function animatePet() {
+      petEl.style.transform = "translateY(-6px)";
+      setTimeout(() => (petEl.style.transform = "translateY(0)"), 180);
+    }
+
+    document.getElementById("feedBtn").addEventListener("click", () => {
+      state.hunger = clamp(state.hunger + 18);
+      state.clean = clamp(state.clean - 6);
+      state.happy = clamp(state.happy + 4);
+      animatePet();
+      log("BytePal munched a pixel snack.");
+      action("feed");
+      updateBars();
+      setMood();
+    });
+
+    document.getElementById("playBtn").addEventListener("click", () => {
+      state.happy = clamp(state.happy + 20);
+      state.energy = clamp(state.energy - 8);
+      animatePet();
+      log("BytePal danced in tiny circles.");
+      action("play");
+      updateBars();
+      setMood();
+    });
+
+    document.getElementById("sleepBtn").addEventListener("click", () => {
+      state.energy = clamp(state.energy + 22);
+      state.hunger = clamp(state.hunger - 6);
+      log("BytePal is recharging...");
+      action("sleep");
+      updateBars();
+      setMood();
+    });
+
+    document.getElementById("cleanBtn").addEventListener("click", () => {
+      state.clean = clamp(state.clean + 25);
+      state.happy = clamp(state.happy + 6);
+      log("Sparkles everywhere. BytePal feels fresh.");
+      action("clean");
+      updateBars();
+      setMood();
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      state.hunger = 60;
+      state.happy = 60;
+      state.energy = 70;
+      state.clean = 65;
+      state.streak = 0;
+      state.lastAction = null;
+      streakBadge.textContent = "Streak: 0";
+      log("BytePal restarted its day.");
+      updateBars();
+      setMood();
+    });
+
+    // Easter egg #1: click the tiny 'tap, tap...' text 7 times
+    screenEl.addEventListener("click", (e) => {
+      if (!e.target.classList.contains("egg")) return;
+      state.eggClicks += 1;
+      if (state.eggClicks === 7) {
+        secret("You found the hidden hatch.");
+        state.happy = clamp(state.happy + 25);
+        updateBars();
+        setMood();
+      }
+    });
+
+    // Easter egg #2: Konami code
+    window.addEventListener("keydown", (e) => {
+      const key = e.key.toLowerCase();
+      const seq = ["arrowup","arrowup","arrowdown","arrowdown","arrowleft","arrowright","arrowleft","arrowright","b","a"];
+      state.konami.push(key);
+      if (state.konami.length > seq.length) state.konami.shift();
+      if (seq.every((v, i) => state.konami[i] === v)) {
+        secret("Retro mode engaged.");
+        petEl.style.filter = "hue-rotate(120deg)";
+      }
+
+      // Easter egg #3: press 'i' to invert world
+      if (key === "i") {
+        state.inverted = !state.inverted;
+        document.body.style.filter = state.inverted ? "invert(1)" : "invert(0)";
+        log(state.inverted ? "Reality inverted." : "Reality restored.");
+      }
+
+      // Easter egg #4: press 'd' for disco
+      if (key === "d") {
+        state.disco = !state.disco;
+        if (state.disco) {
+          screenEl.style.animation = "disco 1.2s infinite";
+          secret("Disco mode on.");
+        } else {
+          screenEl.style.animation = "none";
+          log("Disco mode off.");
+        }
+      }
+    });
+
+    function secret(message) {
+      secretBanner.textContent = message;
+      secretBanner.classList.remove("hidden");
+      setTimeout(() => secretBanner.classList.add("hidden"), 1400);
+      log(message);
+    }
+
+    function updateTime() {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, "0");
+      const mm = String(now.getMinutes()).padStart(2, "0");
+      timeBadge.textContent = `${hh}:${mm}`;
+    }
+
+    function blinkEyes() {
+      const eyes = document.querySelectorAll(".eye");
+      eyes.forEach((eye) => {
+        eye.style.transform = "scaleY(0.1)";
+        setTimeout(() => { eye.style.transform = "scaleY(1)"; }, 120);
+      });
+    }
+
+    setInterval(tick, 4000);
+    setInterval(updateTime, 1000 * 30);
+    setInterval(blinkEyes, 5000);
+    updateBars();
+    setMood();
+    updateTime();
+
+    const style = document.createElement("style");
+    style.textContent = `@keyframes disco { 0%{box-shadow:0 0 0 #ff6b6b;} 50%{box-shadow:0 0 20px #62f0c8;} 100%{box-shadow:0 0 0 #ffb200;} }`;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>
